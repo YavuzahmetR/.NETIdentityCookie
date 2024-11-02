@@ -34,12 +34,13 @@ namespace IdentityAppCookie.Web.ViewModels
         public string Phone { get; set; }
 
 
-
+        [DataType(DataType.Password)]
         [Required(ErrorMessage = ("Password field cannot be left blank."))]
         [Display(Name = "Password : ")]
+        [MinLength(6, ErrorMessage = "Password Has To Contain At Least 6 Characters")]
         public string Password { get; set; }
 
-
+        [DataType(DataType.Password)]
         [Compare(nameof(Password),ErrorMessage ="Passwords are not the same.")]
         [Required(ErrorMessage = ("Password Confirm field cannot be left blank."))]
         [Display(Name = "Password Confirm : ")]
