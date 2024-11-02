@@ -1,5 +1,6 @@
 ﻿using IdentityAppCookie.Web.Areas.Admin.Models;
 using IdentityAppCookie.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,12 +22,12 @@ namespace IdentityAppCookie.Web.Areas.Admin.Controllers
         {
             return View();
         }
-
+        //[Authorize]
         public async Task<IActionResult> UserList()
         {
             var users = await _userManager.Users.ToListAsync();
 
-            var userViewModel = users.Select(x => new UserViewModel
+            var userViewModel = users.Select(x => new AdminUserViewModel
             {
                 Id = x.Id,
                 Name = x.UserName,
