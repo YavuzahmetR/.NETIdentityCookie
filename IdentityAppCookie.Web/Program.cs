@@ -1,7 +1,11 @@
 using IdentityAppCookie.Web.Extensions;
 using IdentityAppCookie.Web.Models;
+using IdentityAppCookie.Web.OptionsModels;
+using IdentityAppCookie.Web.Services;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,18 +14,17 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContextExtension(builder.Configuration.GetConnectionString("SqlServer")!);
 
+builder.Services.AddSecurityStampValidatorOptionsExtension();
+
+builder.Services.AddEmailSettings(builder.Configuration);
+
+builder.Services.AddEmailService();
+ 
 builder.Services.AddIdentityExtension();
 
-builder.Services.ConfigureApplicationCookie(opt =>
-{
-    var cookieBuilder = new CookieBuilder();
-    cookieBuilder.Name = "RabisCookie";
-    opt.Cookie = cookieBuilder;
-    opt.LoginPath = new PathString("/Home/SignIn"); //Redirect Users whom does not signed in yet, for pages that will need user's cookie.
-    opt.LogoutPath = new PathString("/User/Logout"); //Redirect Users to given returnUrl where it has been declared with asp-route-returnurl.
-    opt.ExpireTimeSpan = TimeSpan.FromDays(60);
-    opt.SlidingExpiration = true;
-});
+builder.Services.ConfigureApplicationCookieExtension();
+
+builder.Services.AddSingletonFileProvider(); 
 
 var app = builder.Build();
 
