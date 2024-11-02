@@ -1,5 +1,6 @@
 using IdentityAppCookie.Web.Extensions;
 using IdentityAppCookie.Web.Models;
+using IdentityAppCookie.Web.Services;
 using IdentityAppCookie.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ using System.Diagnostics;
 
 namespace IdentityAppCookie.Web.Controllers
 {
-    public class HomeController(ILogger<HomeController> logger, UserManager<UserApp> userManager, SignInManager<UserApp> signInManager) : Controller
+    public class HomeController(ILogger<HomeController> logger, UserManager<UserApp> userManager, SignInManager<UserApp> signInManager, IEmailService emailService) : Controller
     {
 
 
@@ -63,7 +64,13 @@ namespace IdentityAppCookie.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> SignIn(SignInViewModel signInViewModel, string? returnUrl = null)
         {
-            returnUrl = returnUrl ?? Url.Action(nameof(Index));
+
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
+
+            returnUrl ??= Url.Action(nameof(Index));
 
             var hasUser = await userManager.FindByEmailAsync(signInViewModel.Email);
 
@@ -95,7 +102,84 @@ namespace IdentityAppCookie.Web.Controllers
             return View();
         }
 
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel forgotPasswordViewModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
+            var hasUser = await userManager.FindByEmailAsync(forgotPasswordViewModel.Email);
 
+            if (hasUser == null)
+            {
+                ModelState.AddModelError(string.Empty, "There is no user has this email, Try Again.");
+                return View();
+            }
+            string passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(hasUser!);
+
+            var passwordResetLink = Url.Action("ResetPassword", "Home", new { userId = hasUser.Id , Token = passwordResetToken },
+                HttpContext.Request.Scheme);
+
+            //example link : https://localhost:7221?userId=123213&token=asfkssfdsafasd
+
+            await emailService.SendResetPasswordEmailAsync(passwordResetLink!,hasUser.Email!);
+
+            TempData["SuccessMessage"] = "Password Reset Link Has Been Send To Your Email Adress";
+            return RedirectToAction(nameof(ForgotPassword));
+
+
+
+            //nsts ahri pqbe mvf
+
+        }
+
+
+
+        public IActionResult ResetPassword(string userId, string token)
+        {
+            TempData["userId"] = userId;
+            TempData["token"] = token;
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel resetPasswordViewModel)
+        {
+            var userId = TempData["userId"];
+            var token = TempData["token"];
+
+            if(userId == null && token == null)
+            {
+                throw new Exception("Somethings went wrong.");
+            }
+
+            var hasUser = await userManager.FindByIdAsync(userId!.ToString()!);
+
+            if(hasUser == null)
+            {
+                ModelState.AddModelError(string.Empty, "User Not Found.");
+                return View();
+            }
+
+            var result = await userManager.ResetPasswordAsync(hasUser,token!.ToString()!, resetPasswordViewModel.Password);
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Your password has been changed successfully";
+            }
+            else
+            {
+                ModelState.AddModelErrorExtension(result.Errors.Select(x => x.Description).ToList());
+                return View();
+            }
+
+            return View();
+        }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
