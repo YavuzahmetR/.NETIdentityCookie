@@ -6,7 +6,10 @@
                 @User.Identity.Name
             </a>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" asp-route-returnurl="/Home/Index" asp-controller="User" asp-action="Logout">Log Out</a></li>
+                <li><a class="dropdown-item" asp-controller="User" asp-action="Index">Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="User" asp-action="EditUser">Update Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="User" asp-action="PasswordChange">Change Password</a></li>
+                <li><a class="dropdown-item" asp-route-returnurl="/Home/Index" asp-controller="User" asp-action="Logout">Log Out</a></li>              
             </ul>
         </li>
     </ul>
@@ -15,5 +18,5 @@ else
 {
     <a class="btn btn-outline-success mx-2" asp-controller="Home" asp-action="SignIn">Sign In</a>
     <a class="btn btn-outline-success" asp-controller="Home" asp-action="SignUp">Sign Up</a>
-    <a class="btn btn-outline-success" asp-controller="User" asp-action="Index">User Page</a>
+    <a class="btn btn-outline-success ms-2"  asp-controller="User" asp-action="Index">User Page</a>
 }

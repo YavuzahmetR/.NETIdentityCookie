@@ -15,19 +15,28 @@
         <form asp-controller="Home" asp-action="SignIn" asp-route-returnUrl="@Context.Request.Query["returnURL"]" method="post">
             <div class="mb-3">
                 <label class="form-label" asp-for="Email"></label>
-                <input value="ayavuzisik@gmail.com"class="form-control" asp-for="Email">
+                <input value="ayavuzisik@gmail.com" class="form-control" asp-for="Email">
                 <span class="text-danger" asp-validation-for="Email"></span>
             </div>
             <div class="mb-3">
                 <label class="form-label" asp-for="Password"></label>
-                <input value="Password12*" type="password" class="form-control" asp-for="Password">
+                <input value="Password123*" type="password" class="form-control" asp-for="Password">
                 <span class="text-danger" asp-validation-for="Password"></span>
             </div>
-            <div class="mb-3 form-check">
-                <input class="form-check-input" asp-for="RememberMe">
-                <label class="form-check-label" asp-for="RememberMe"></label>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 form-check">
+                        <input class="form-check-input" asp-for="RememberMe">
+                        <label class="form-check-label" asp-for="RememberMe"></label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <a class="btn btn-outline-light-blue float-end" asp-controller="Home" asp-action="ForgotPassword">Forgot Password?</a>
+                </div>
             </div>
-            <button type="submit" class="btn btn-outline-light-blue">Sign In</button>
+            <button type="submit" class="btn btn-success">Log In</button>
+
         </form>
     </div>
 </div>
