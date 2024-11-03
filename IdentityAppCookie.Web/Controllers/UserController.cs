@@ -16,11 +16,11 @@ namespace IdentityAppCookie.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var currentUser = await userManager.FindByNameAsync(User.Identity!.Name!);
+            var currentUser = (await userManager.FindByNameAsync(User.Identity!.Name!))!;
 
-            var userViewModel = new UserViewModel { Email = currentUser!.Email, 
+            var userViewModel = new UserViewModel { Email = currentUser.Email, 
                 PhoneNumber = currentUser.PhoneNumber, 
-                UserName = currentUser.UserName };
+                UserName = currentUser.UserName, PictureUrl = currentUser.Picture };
 
             return View(userViewModel);
         }
@@ -67,7 +67,13 @@ namespace IdentityAppCookie.Web.Controllers
 
         public async Task<IActionResult> EditUser()
         {
-            ViewBag.GenderList = new SelectList(Enum.GetNames(typeof(Gender)));
+            ViewBag.GenderList = Enum.GetValues(typeof(Gender))
+                             .Cast<Gender>()
+                             .Select(g => new SelectListItem
+                             {
+                                 Text = g.ToString(),
+                                 Value = ((byte)g).ToString()
+                             }).ToList();
 
             var currentUser = await userManager.FindByNameAsync(User.Identity!.Name!);
 
@@ -142,6 +148,14 @@ namespace IdentityAppCookie.Web.Controllers
             return View(request);
         }
 
+        public IActionResult AccessDenied(string returnUrl)
+        {
+            string message = "You do not have permission to view this page. Please contact your administrator for access.";
+
+            ViewBag.Message = message;
+            
+            return View();
+        }
 
         //First way. Second way is from cookieBuilder.LogoutPath
         public async Task/*<IActionResult>*/ Logout()
