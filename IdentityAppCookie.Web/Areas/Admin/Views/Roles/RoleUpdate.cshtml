@@ -1,0 +1,45 @@
+﻿@model RoleUpdateViewModel
+@{
+    ViewData["Title"] = "RoleUpdate";
+}
+
+
+
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <h2>Update The Role</h2>
+        @if (ViewData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success" role="alert">
+                @ViewData["SuccessMessage"]
+            </div>
+        }
+        <br />
+        <form asp-action="RoleUpdate" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id"/>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <br />
+            <div class="row">
+                <div class="d-flex align-items-center">
+                    <input type="submit" value="Update" class="btn btn-primary me-5" />
+                    <a asp-action="Index">Back to Role List</a>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
