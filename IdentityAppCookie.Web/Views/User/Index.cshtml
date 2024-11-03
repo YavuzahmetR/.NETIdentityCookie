@@ -3,8 +3,12 @@
     ViewData["Title"] = "Index";
 }
 
+<div class="row">
+    <div class="col-md-5 offset-md-5">
+        <user-picture picture-url="@Model.PictureUrl" class="rounded" style="width:120px"></user-picture>
+</div>
 
-
+</div>
 <div class="row">
     <div class="col-md-6 offset-3">
         <h2>Welcome @User.Identity!.Name !</h2>
