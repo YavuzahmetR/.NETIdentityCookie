@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace IdentityAppCookie.Web.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin")]
     public class HomeController : Controller
     {
 
@@ -22,7 +23,7 @@ namespace IdentityAppCookie.Web.Areas.Admin.Controllers
         {
             return View();
         }
-        //[Authorize]
+        
         public async Task<IActionResult> UserList()
         {
             var users = await _userManager.Users.ToListAsync();
