@@ -56,6 +56,7 @@ namespace IdentityAppCookie.Web.Extensions
                 opt.Cookie = cookieBuilder;
                 opt.LoginPath = new PathString("/Home/SignIn"); //Redirect Users whom does not signed in yet, for pages that will need user's cookie.
                 opt.LogoutPath = new PathString("/User/Logout"); //Redirect Users to given returnUrl where it has been declared with asp-route-returnurl.
+                opt.AccessDeniedPath = new PathString("/User/AccessDenied");//Redirect Users to A Custom Unauthorize Error Page.
                 opt.ExpireTimeSpan = TimeSpan.FromDays(60);
                 opt.SlidingExpiration = true;
             });
