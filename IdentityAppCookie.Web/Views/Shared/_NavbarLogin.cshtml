@@ -9,6 +9,7 @@
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" asp-controller="User" asp-action="Index">Profile</a></li>
                 <li><a class="dropdown-item" asp-controller="User" asp-action="EditUser">Update Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="User" asp-action="Claims">User Claims</a></li>
                 @if (User.HasClaim(x => x.Type == ClaimTypes.Role && x.Value == "Admin"))
                 {
                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Home" asp-action="Index">Admin Pages</a></li>

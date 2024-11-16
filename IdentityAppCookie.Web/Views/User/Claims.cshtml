@@ -1,0 +1,30 @@
+﻿@model List<UserClaimsViewModel>
+@{
+    ViewData["Title"] = "Claims";
+}
+
+<h1>UserList</h1>
+
+
+<table class="table table-dark table-striped">
+    <thead>
+        <tr>
+            <th>Issuer</th>
+            <th>Type</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Issuer</td>
+                <td>@item.Type</td>
+                <td>@item.Value</td>
+            </tr>
+        }
+
+    </tbody>
+</table>
+
+

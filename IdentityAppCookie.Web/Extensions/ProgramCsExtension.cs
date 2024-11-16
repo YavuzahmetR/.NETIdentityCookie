@@ -1,11 +1,13 @@
-﻿using IdentityAppCookie.Web.CustomValidations;
+﻿using IdentityAppCookie.Web.ClaimProvider;
+using IdentityAppCookie.Web.CustomValidations;
 using IdentityAppCookie.Web.Localizations;
-using IdentityAppCookie.Web.Models;
-using IdentityAppCookie.Web.OptionsModels;
-using IdentityAppCookie.Web.Services;
+using IdentityAppCookie.Core.OptionsModels;
+using IdentityAppCookie.Service.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using IdentityAppCookie.Repository.Models;
 
 namespace IdentityAppCookie.Web.Extensions
 {
@@ -38,12 +40,17 @@ namespace IdentityAppCookie.Web.Extensions
             .AddDefaultTokenProviders()
             .AddEntityFrameworkStores<AppDbContext>();
         }
-        public static void AddDbContextExtension(this IServiceCollection services, string connectionString)
+        public static IServiceCollection AddDbContextWithMigrations(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(configuration.GetConnectionString("SqlServer"), sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly("IdentityAppCookie.Repository");
+                });
             });
+
+            return services;
         }
 
 
@@ -67,6 +74,17 @@ namespace IdentityAppCookie.Web.Extensions
         {
             services.AddScoped<IEmailService, EmailService>();
         }
+
+        public static void AddMemberService(this IServiceCollection services)
+        {
+            services.AddScoped<IMemberService, MemberService>();
+        }
+
+        public static void AddClaimService(this IServiceCollection services)
+        {
+            services.AddScoped<IClaimsTransformation, UserClaimProvider>();
+        }
+
 
         public static void AddEmailSettings(this IServiceCollection services, IConfiguration configuration)
         {

@@ -1,5 +1,5 @@
 ﻿using IdentityAppCookie.Web.Areas.Admin.Models;
-using IdentityAppCookie.Web.Models;
+using IdentityAppCookie.Repository.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

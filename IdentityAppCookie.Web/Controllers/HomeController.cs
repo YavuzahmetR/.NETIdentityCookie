@@ -1,10 +1,11 @@
+using IdentityAppCookie.Core.ViewModels;
 using IdentityAppCookie.Web.Extensions;
-using IdentityAppCookie.Web.Models;
-using IdentityAppCookie.Web.Services;
-using IdentityAppCookie.Web.ViewModels;
+using IdentityAppCookie.Repository.Models;
+using IdentityAppCookie.Service.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace IdentityAppCookie.Web.Controllers
 {
@@ -43,15 +44,26 @@ namespace IdentityAppCookie.Web.Controllers
             }, signUpViewModel.PasswordConfirm);
 
 
-            if (identityResult.Succeeded)
+            if (!identityResult.Succeeded)
             {
-                TempData["SuccessMessage"] = "Membership registration completed successfully.";
-                return RedirectToAction(nameof(HomeController.SignUp));
+                ModelState.AddModelErrorExtension(identityResult.Errors);
+                return View();
             }
 
-            ModelState.AddModelErrorExtension(identityResult.Errors.Select(x => x.Description).ToList());
+            var exchangeExpireClaim = new Claim("ExchangeExpireDate", DateTime.Now.AddDays(10).ToString());
 
-            return View();
+            var user = await userManager.FindByNameAsync(signUpViewModel.UserName);
+            
+            var claimResult = await userManager.AddClaimAsync(user!, exchangeExpireClaim);
+
+            if (!claimResult.Succeeded)
+            {
+                ModelState.AddModelErrorExtension(claimResult.Errors);
+                return View();
+            }
+
+            TempData["SuccessMessage"] = "Membership registration completed successfully.";
+            return RedirectToAction(nameof(HomeController.SignUp));
 
         }
 
@@ -83,10 +95,6 @@ namespace IdentityAppCookie.Web.Controllers
             var signInResult = await signInManager.PasswordSignInAsync(hasUser, signInViewModel.Password,
                 signInViewModel.RememberMe, true);
 
-            if (signInResult.Succeeded)
-            {
-                return Redirect(returnUrl);
-            }
 
             if (signInResult.IsLockedOut)
             {
@@ -94,12 +102,21 @@ namespace IdentityAppCookie.Web.Controllers
                 return View();
             }
 
-
-            ModelState.AddModelErrorExtension(new List<string>() {$"Email or Password is wrong.", //User exists but password wrong.
+            if (!signInResult.Succeeded)
+            {
+                ModelState.AddModelErrorExtension(new List<string>() {$"Email or Password is wrong.", //User exists but password wrong.
                $"Failed Accession Attemps : {await userManager.GetAccessFailedCountAsync(hasUser)}" });
+                return View();
+            }
 
+            if (hasUser.BirthDate.HasValue)
+            {
+                await signInManager.SignInWithClaimsAsync(hasUser, signInViewModel.RememberMe,
+                    new[] { new Claim("Birthdate", hasUser.BirthDate.Value.ToString())});
+            }
 
-            return View();
+            return Redirect(returnUrl);
+
         }
 
         public IActionResult ForgotPassword()
@@ -122,12 +139,12 @@ namespace IdentityAppCookie.Web.Controllers
             }
             string passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(hasUser!);
 
-            var passwordResetLink = Url.Action("ResetPassword", "Home", new { userId = hasUser.Id , Token = passwordResetToken },
+            var passwordResetLink = Url.Action("ResetPassword", "Home", new { userId = hasUser.Id, Token = passwordResetToken },
                 HttpContext.Request.Scheme);
 
             //example link : https://localhost:7221?userId=123213&token=asfkssfdsafasd
 
-            await emailService.SendResetPasswordEmailAsync(passwordResetLink!,hasUser.Email!);
+            await emailService.SendResetPasswordEmailAsync(passwordResetLink!, hasUser.Email!);
 
             TempData["SuccessMessage"] = "Password Reset Link Has Been Send To Your Email Adress";
             return RedirectToAction(nameof(ForgotPassword));
@@ -150,23 +167,27 @@ namespace IdentityAppCookie.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> ResetPassword(ResetPasswordViewModel resetPasswordViewModel)
         {
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
             var userId = TempData["userId"];
             var token = TempData["token"];
 
-            if(userId == null && token == null)
+            if (userId == null && token == null)
             {
                 throw new Exception("Somethings went wrong.");
             }
 
             var hasUser = await userManager.FindByIdAsync(userId!.ToString()!);
 
-            if(hasUser == null)
+            if (hasUser == null)
             {
                 ModelState.AddModelError(string.Empty, "User Not Found.");
                 return View();
             }
 
-            var result = await userManager.ResetPasswordAsync(hasUser,token!.ToString()!, resetPasswordViewModel.Password);
+            var result = await userManager.ResetPasswordAsync(hasUser, token!.ToString()!, resetPasswordViewModel.Password);
 
             if (result.Succeeded)
             {
