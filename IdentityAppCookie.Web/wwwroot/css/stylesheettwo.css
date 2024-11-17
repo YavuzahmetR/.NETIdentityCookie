@@ -1,0 +1,20 @@
+﻿.google-login-button {
+    background: linear-gradient(90deg, #4285F4, #34A853, #FBBC05, #EA4335);
+    color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+
+
+    .google-login-button img {
+        margin-right: 10px;
+        height: 20px;
+        width: 20px;
+    }

@@ -1,0 +1,19 @@
+﻿.facebook-login-btn {
+    background: linear-gradient(90deg, #1877F2, #42A5F5, #FFFFFF);
+    color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+
+.facebook-icon {
+    height: 20px;
+    margin-right: 10px;
+}
+
