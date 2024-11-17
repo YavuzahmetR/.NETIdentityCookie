@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using IdentityAppCookie.Repository.Models;
+using Microsoft.AspNetCore.Authorization;
+using IdentityAppCookie.Web.Requirements;
+using IdentityAppCookie.Core.PermissonsRoot;
 
 namespace IdentityAppCookie.Web.Extensions
 {
@@ -23,7 +26,7 @@ namespace IdentityAppCookie.Web.Extensions
             services.AddIdentity<UserApp, RoleApp>(options =>
             {
                 options.User.RequireUniqueEmail = true;
-                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
+                options.User.AllowedUserNameCharacters = "abcçdefgğhıijklmnoöpqrşstuüvwxyzABCDEFGHIJKLMNOPQRSŞTUVWXYZ1234567890_.- ";
 
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequiredLength = 6;
@@ -40,6 +43,71 @@ namespace IdentityAppCookie.Web.Extensions
             .AddDefaultTokenProviders()
             .AddEntityFrameworkStores<AppDbContext>();
         }
+
+        public static void AddAuthorizationExtension(this IServiceCollection services)
+        {
+            services.AddAuthorization(opt =>
+            {
+                opt.AddPolicy("IstanbulPolicy", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Claim - AspNetUsers
+                    policy.RequireClaim("city", "İstanbul");
+                });
+
+                opt.AddPolicy("ExchangeExpireDatePolicy", policy =>
+                {
+                    // Claim Does Not Exists On DataBase A Column Type - Its In AspNetUserClaims
+                    policy.AddRequirements(new ExchangeExpireRequirement());
+                });
+
+                opt.AddPolicy("ViolencePolicy", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Claim - AspNetUsers
+                    policy.AddRequirements(new ViolenceRequirement() { ThresholdAge = 18 });
+                });
+
+                opt.AddPolicy("OrderReadAndCreate_StockRead_Permission", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Role - AspNetRoles
+                    policy.RequireClaim("Permission", Permissions.Order.Read);
+                    policy.RequireClaim("Permission", Permissions.Order.Create);
+                    policy.RequireClaim("Permission", Permissions.Stock.Read);
+                });
+
+                opt.AddPolicy("OrderReadPermission", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Role - AspNetRoles
+                    policy.RequireClaim("Permission", Permissions.Order.Read);
+                });
+
+                opt.AddPolicy("OrderCreatePermission", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Role - AspNetRoles
+                    policy.RequireClaim("Permission", Permissions.Order.Create);
+
+                });
+
+                opt.AddPolicy("StockReadPermission", policy =>
+                {
+                    // Claim Exists On Database As A Column Type Role - AspNetRoles
+                    policy.RequireClaim("Permission", Permissions.Stock.Read);
+                });
+            });
+        }
+
+        public static void AddThirdPartyAuthenticationExtension(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddAuthentication().AddFacebook(opt =>
+            {
+                opt.AppId = configuration["Authentication:Facebook:AppId"]!;
+                opt.AppSecret = configuration["Authentication:Facebook:AppSecret"]!;
+            }).AddGoogle(opt =>
+            {
+                opt.ClientId = configuration["Authentication:Google:ClientId"]!;
+                opt.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+            });
+        }
+        
         public static IServiceCollection AddDbContextWithMigrations(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<AppDbContext>(options =>
@@ -74,6 +142,14 @@ namespace IdentityAppCookie.Web.Extensions
         {
             services.AddScoped<IEmailService, EmailService>();
         }
+        public static void AddExchangeExpireRequirementService(this IServiceCollection services)
+        {
+            services.AddScoped<IAuthorizationHandler, ExchangeExpireRequirementHandler>();
+        }
+        public static void AddViolenceRequirementService(this IServiceCollection services)
+        {
+            services.AddScoped<IAuthorizationHandler, ViolenceRequirementHandler>();
+        }
 
         public static void AddMemberService(this IServiceCollection services)
         {
@@ -83,6 +159,11 @@ namespace IdentityAppCookie.Web.Extensions
         public static void AddClaimService(this IServiceCollection services)
         {
             services.AddScoped<IClaimsTransformation, UserClaimProvider>();
+        }
+
+        public static void AddSignService(this IServiceCollection services)
+        {
+            services.AddScoped<ISignService, SignService>();
         }
 
 
