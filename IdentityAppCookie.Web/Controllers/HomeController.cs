@@ -6,12 +6,17 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
+using Newtonsoft.Json.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace IdentityAppCookie.Web.Controllers
 {
-    public class HomeController(ILogger<HomeController> logger, UserManager<UserApp> userManager, SignInManager<UserApp> signInManager, IEmailService emailService) : Controller
+    public class HomeController(ILogger<HomeController> logger,
+        UserManager<UserApp> userManager,
+        SignInManager<UserApp> signInManager,
+        ISignService signService) : Controller
     {
-
+      
 
         public IActionResult Index()
         {
@@ -36,34 +41,17 @@ namespace IdentityAppCookie.Web.Controllers
                 return View();
             }
 
-            var identityResult = await userManager.CreateAsync(new()
-            {
-                UserName = signUpViewModel.UserName,
-                Email = signUpViewModel.Email,
-                PhoneNumber = signUpViewModel.Phone
-            }, signUpViewModel.PasswordConfirm);
+            var (isSuccess, errors) = await signService.SignUpServiceAsync(signUpViewModel.UserName,
+                signUpViewModel.Email, signUpViewModel.Phone,signUpViewModel.PasswordConfirm
+                );
 
-
-            if (!identityResult.Succeeded)
+            if (!isSuccess)
             {
-                ModelState.AddModelErrorExtension(identityResult.Errors);
+                ModelState.AddModelErrorExtension(errors!);
                 return View();
             }
-
-            var exchangeExpireClaim = new Claim("ExchangeExpireDate", DateTime.Now.AddDays(10).ToString());
-
-            var user = await userManager.FindByNameAsync(signUpViewModel.UserName);
-            
-            var claimResult = await userManager.AddClaimAsync(user!, exchangeExpireClaim);
-
-            if (!claimResult.Succeeded)
-            {
-                ModelState.AddModelErrorExtension(claimResult.Errors);
-                return View();
-            }
-
             TempData["SuccessMessage"] = "Membership registration completed successfully.";
-            return RedirectToAction(nameof(HomeController.SignUp));
+            return RedirectToAction(nameof(SignUp));
 
         }
 
@@ -84,45 +72,21 @@ namespace IdentityAppCookie.Web.Controllers
 
             returnUrl ??= Url.Action(nameof(Index));
 
-            var hasUser = await userManager.FindByEmailAsync(signInViewModel.Email);
+            var (isSuccess, errors) = await signService.SignInServiceAsync(signInViewModel.Email, signInViewModel.Password, signInViewModel.RememberMe);
 
-            if (hasUser == null)
+            if (!isSuccess)
             {
-                ModelState.AddModelError(string.Empty, "Email or Password is wrong."); //User does not exists.
+                ModelState.AddModelErrorExtension(errors!);
                 return View();
             }
-
-            var signInResult = await signInManager.PasswordSignInAsync(hasUser, signInViewModel.Password,
-                signInViewModel.RememberMe, true);
-
-
-            if (signInResult.IsLockedOut)
-            {
-                ModelState.AddModelError(string.Empty, "You Can't Log In For 1 Minute!");
-                return View();
-            }
-
-            if (!signInResult.Succeeded)
-            {
-                ModelState.AddModelErrorExtension(new List<string>() {$"Email or Password is wrong.", //User exists but password wrong.
-               $"Failed Accession Attemps : {await userManager.GetAccessFailedCountAsync(hasUser)}" });
-                return View();
-            }
-
-            if (hasUser.BirthDate.HasValue)
-            {
-                await signInManager.SignInWithClaimsAsync(hasUser, signInViewModel.RememberMe,
-                    new[] { new Claim("Birthdate", hasUser.BirthDate.Value.ToString())});
-            }
-
             return Redirect(returnUrl);
-
         }
 
         public IActionResult ForgotPassword()
         {
             return View();
         }
+
         [HttpPost]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel forgotPasswordViewModel)
         {
@@ -130,27 +94,19 @@ namespace IdentityAppCookie.Web.Controllers
             {
                 return View();
             }
-            var hasUser = await userManager.FindByEmailAsync(forgotPasswordViewModel.Email);
-
-            if (hasUser == null)
-            {
-                ModelState.AddModelError(string.Empty, "There is no user has this email, Try Again.");
-                return View();
-            }
-            string passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(hasUser!);
+            
+            var (hasUser, passwordResetToken) = await signService.ForgotPasswordServiceAsync(forgotPasswordViewModel.Email);
 
             var passwordResetLink = Url.Action("ResetPassword", "Home", new { userId = hasUser.Id, Token = passwordResetToken },
                 HttpContext.Request.Scheme);
 
-            //example link : https://localhost:7221?userId=123213&token=asfkssfdsafasd
-
-            await emailService.SendResetPasswordEmailAsync(passwordResetLink!, hasUser.Email!);
+            await signService.ResetPasswordEmailServiceAsync(passwordResetLink!,hasUser.Email!);
 
             TempData["SuccessMessage"] = "Password Reset Link Has Been Send To Your Email Adress";
             return RedirectToAction(nameof(ForgotPassword));
 
 
-
+            //example link : https://localhost:7221?userId=123213&token=asfkssfdsafasd
             //nsts ahri pqbe mvf
 
         }
@@ -179,23 +135,15 @@ namespace IdentityAppCookie.Web.Controllers
                 throw new Exception("Somethings went wrong.");
             }
 
-            var hasUser = await userManager.FindByIdAsync(userId!.ToString()!);
+            var (isSuccess, errors) = await signService.ResetPasswordServiceAsync(userId, token, resetPasswordViewModel.Password);
 
-            if (hasUser == null)
-            {
-                ModelState.AddModelError(string.Empty, "User Not Found.");
-                return View();
-            }
-
-            var result = await userManager.ResetPasswordAsync(hasUser, token!.ToString()!, resetPasswordViewModel.Password);
-
-            if (result.Succeeded)
+            if (isSuccess)
             {
                 TempData["SuccessMessage"] = "Your password has been changed successfully";
             }
             else
             {
-                ModelState.AddModelErrorExtension(result.Errors.Select(x => x.Description).ToList());
+                ModelState.AddModelErrorExtension(errors!);
                 return View();
             }
 
@@ -206,6 +154,56 @@ namespace IdentityAppCookie.Web.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+
+        public IActionResult GoogleLogin(string returnUrl)
+        {
+            string redirectUrl = Url.Action("ExternalResponse", "Home", new { returnUrl });
+
+            return signService.ExternalLoginGoogleAuthenticationService(redirectUrl, "Google");
+        }
+
+        public IActionResult FacebookLogin(string returnUrl)
+        {
+            string redirectUrl = Url.Action("ExternalResponse", "Home", new { returnUrl = returnUrl });
+
+            return signService.ExternalLoginFacebookAuthenticationService(redirectUrl, "Facebook");
+            
+        }
+
+
+        public async Task<IActionResult> ExternalResponse(string returnUrl = "/")
+        {
+            var info = await signService.ExternalLoginInfoService();
+            if (info == null) return RedirectToAction("SignIn");
+
+
+            var signInResult = await signService.SignInResultService(info);
+            if (signInResult.Succeeded) return Redirect(returnUrl);
+
+
+            var (userApp, createResult, result) = await signService.ExternalUserAppService(info);
+
+            if (createResult?.Succeeded==true)
+            {
+                await signService.AddExternalLoginServiceAsync(userApp!, info);
+                return Redirect(returnUrl);
+            }
+
+            ModelState.AddModelErrorExtension(result!);
+
+            var errors = ModelState.Values
+                .SelectMany(x => x.Errors)
+                .Select(x => x.ErrorMessage)
+                .ToList();
+
+            return RedirectToAction("CustomError", errors);
+        }
+
+        public IActionResult CustomError()
+        {
+            return View();
         }
     }
 }
