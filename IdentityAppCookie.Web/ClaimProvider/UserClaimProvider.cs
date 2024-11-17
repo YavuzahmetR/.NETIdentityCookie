@@ -9,25 +9,26 @@ namespace IdentityAppCookie.Web.ClaimProvider
     {
         public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
         {
-            
-            var identityUser = principal.Identity as ClaimsIdentity; 
-           
+
+            var identityUser = principal.Identity as ClaimsIdentity;
+
             var currentUser = await userManager.FindByNameAsync(identityUser.Name);
 
 
-            if (String.IsNullOrEmpty(currentUser!.City))
+            if (String.IsNullOrEmpty(currentUser?.City))
             {
                 return principal;
             }
 
 
-            if(principal.HasClaim(x => x.Type != "city"))
+            if (principal.HasClaim(x => x.Type != "city"))
             {
-                Claim cityClaim = new Claim("city",currentUser.City);
+                Claim cityClaim = new Claim("city", currentUser.City);
                 identityUser.AddClaim(cityClaim);
             }
 
             return principal;
+
         }
     }
 }
